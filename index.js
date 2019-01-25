@@ -88,24 +88,24 @@ var Temporal = function(model, sequelize, temporalOptions){
   // use `after` to be nonBlocking
   // all hooks just create a copy
   if (temporalOptions.full) {
-    model.addHook('afterCreate', insertHook);
-    model.addHook('afterUpdate', insertHook);
-    model.addHook('afterDestroy', insertHook);
-    model.addHook('afterRestore', insertHook);
+    model.hook('afterCreate', insertHook);
+    model.hook('afterUpdate', insertHook);
+    model.hook('afterDestroy', insertHook);
+    model.hook('afterRestore', insertHook);
   } else {
-    model.addHook('beforeUpdate', insertHook);
-    model.addHook('beforeDestroy', insertHook);
+    model.hook('beforeUpdate', insertHook);
+    model.hook('beforeDestroy', insertHook);
   }
 
-  model.addHook('beforeBulkUpdate', insertBulkHook);
-  model.addHook('beforeBulkDestroy', insertBulkHook);
+  model.hook('beforeBulkUpdate', insertBulkHook);
+  model.hook('beforeBulkDestroy', insertBulkHook);
 
   var readOnlyHook = function(){
     throw new Error("This is a read-only history database. You aren't allowed to modify it.");    
   };
 
-  modelHistory.addHook('beforeUpdate', readOnlyHook);
-  modelHistory.addHook('beforeDestroy', readOnlyHook);
+  modelHistory.hook('beforeUpdate', readOnlyHook);
+  modelHistory.hook('beforeDestroy', readOnlyHook);
 
   return model;
 };
