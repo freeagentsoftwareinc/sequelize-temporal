@@ -92,12 +92,22 @@ var Temporal = function(model, sequelize, temporalOptions){
     }
   }
 
+  var insertBulkCreateHook = function(instances, options) {
+    if(!options.individualHooks){
+      var hits = instances.map(instance => ({ ...instance.dataValues, isCreate: true }));
+      if(hits){
+        return modelHistory.bulkCreate(hits, {transaction: options.transaction});
+      }
+    }
+  }
+
   // use `after` to be nonBlocking
   // all hooks just create a copy
   if (temporalOptions.full) {
     model.hook('afterCreate', (obj, options) => {
       return insertHook(obj, { ...options, isCreate: true, });
     });
+    model.hook('afterBulkCreate', insertBulkCreateHook);
     model.hook('afterUpdate', insertHook);
     model.hook('afterDestroy', insertHook);
     model.hook('afterRestore', insertHook);
