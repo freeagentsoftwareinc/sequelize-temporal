@@ -32,7 +32,11 @@ var Temporal = function(model, sequelize, temporalOptions){
       type: Sequelize.DATE,
       allowNull: false,
       defaultValue: Sequelize.NOW
-    }
+    },
+    isCreate: {
+      type: Sequelize.BOOLEAN,
+      defaultValue: false,
+    },
   };
 
   var excludedAttributes = ["Model","unique","primaryKey","autoIncrement", "set", "get", "_modelAttribute"];
@@ -66,6 +70,9 @@ var Temporal = function(model, sequelize, temporalOptions){
   // we already get the updatedAt timestamp from our models
   var insertHook = function(obj, options){
     var dataValues = (!temporalOptions.full && obj._previousDataValues) || obj.dataValues;
+    if(options && options.isCreate) {
+      dataValues.isCreate = true;
+    }
     var historyRecord = modelHistory.create(dataValues, {transaction: options.transaction});
     if(temporalOptions.blocking){
       return historyRecord;
@@ -88,7 +95,9 @@ var Temporal = function(model, sequelize, temporalOptions){
   // use `after` to be nonBlocking
   // all hooks just create a copy
   if (temporalOptions.full) {
-    model.hook('afterCreate', insertHook);
+    model.hook('afterCreate', (obj, options) => {
+      return insertHook(obj, { ...options, isCreate: true, });
+    });
     model.hook('afterUpdate', insertHook);
     model.hook('afterDestroy', insertHook);
     model.hook('afterRestore', insertHook);
