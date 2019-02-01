@@ -83,6 +83,7 @@ var Temporal = function(model, sequelize, temporalOptions){
       var queryAll = model.findAll({where: options.where, transaction: options.transaction}).then(function(hits){
         if(hits){
           hits = _.pluck(hits, 'dataValues');
+          hits = hits.map(hit => (Object.assign(hit, options.attributes)));
           return modelHistory.bulkCreate(hits, {transaction: options.transaction});
         }
       });
@@ -91,6 +92,8 @@ var Temporal = function(model, sequelize, temporalOptions){
       }
     }
   }
+
+  
 
   var insertBulkCreateHook = function(instances, options) {
     if(!options.individualHooks){
