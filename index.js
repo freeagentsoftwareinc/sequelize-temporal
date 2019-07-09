@@ -39,11 +39,20 @@ const excludeAttributes = function excludeAttributes(obj, attrsToExclude) {
   return _.omit(obj, _.partial(_.rearg(_.includes, 0, 2, 1), attrsToExclude));
 };
 
+// Remove calculated fields
+const calculatedFields = ['last_attempts', 'last_outbound_attempts'];
+const removeCalculated = obj => {
+  const newObj = {};
+  Object.keys(obj).forEach(k => {
+    if (!calculatedFields.includes(k)) newObj[k] = obj[k];
+  });
+  return newObj;
+};
 const sortArrays = obj => Array.isArray(obj) ? obj.sort() : obj;
 // eslint-disable-next-line max-len
 const convertStringToNumber = obj => isNaN(parseInt(obj, 10)) || isNaN(Number(obj)) ? obj : Number(obj);
 // eslint-disable-next-line max-len
-const cleanupObj = obj => Object.assign({}, ...Object.keys(obj).map(k => ({ [k]: sortArrays(convertStringToNumber(obj[k])) })));
+const cleanupObj = obj => removeCalculated(Object.assign({}, ...Object.keys(obj).map(k => ({ [k]: sortArrays(convertStringToNumber(obj[k])) }))));
 const validateUpdate = (() => {
   var _ref = _asyncToGenerator(function* (obj, options, model) {
     if (!options || !options.allowEmptyUpdates) {
@@ -151,12 +160,16 @@ const Temporal = function Temporal(model, sequelize, temporalOptions) {
   })();
   const insertBulkHook = function insertBulkHook(options) {
     if (!options.individualHooks) {
-      const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then(hits => {
+      const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then(async hits => {
         if (hits) {
           // Validate that there are changes
-          hits = hits.filter(hit => validateUpdate(hit, options, model));
-          if (hits.length > 0) {
-            hits = _.pluck(hits, 'dataValues');
+          const newHits = [];
+          for (let i = 0; i < hits.length; i += 1) {
+            const hit = hits[i];
+            if (await validateUpdate(hit, options, model)) newHits.push(hit);
+          }
+          if (newHits.length > 0) {
+            hits = _.pluck(newHits, 'dataValues');
             hits = hits.map(hit => Object.assign(hit, options.attributes));
             return modelHistory.bulkCreate(hits, { transaction: options.transaction });
           }
