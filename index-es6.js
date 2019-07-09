@@ -139,28 +139,30 @@ const Temporal = function Temporal(model, sequelize, temporalOptions) {
       return _ref2.apply(this, arguments);
     };
   })();
+
+  const bulkValidate = async (hits, queryAll) => {
+    if (hits) {
+      // Validate that there are changes
+      const newHits = [];
+      for(let i = 0; i < hits.length; i += 1) {
+        const hit = hits[i];
+        if( await validateUpdate(hit, options, model))
+          newHits.push(hit);
+      }
+      if (newHits.length > 0) {
+        hits = _.pluck(newHits, 'dataValues');
+        hits = hits.map(hit => Object.assign(hit, options.attributes));
+        return modelHistory.bulkCreate(hits, { transaction: options.transaction });
+      }
+      return {};
+    }
+    if (temporalOptions.blocking) {
+      return queryAll;
+    }
+  }
   const insertBulkHook = function insertBulkHook(options) {
     if (!options.individualHooks) {
-      const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then(async(hits) => {
-        if (hits) {
-          // Validate that there are changes
-          const newHits = [];
-          for(let i = 0; i < hits.length; i += 1) {
-            const hit = hits[i];
-            if( await validateUpdate(hit, options, model))
-              newHits.push(hit);
-          }
-          if (newHits.length > 0) {
-            hits = _.pluck(newHits, 'dataValues');
-            hits = hits.map(hit => Object.assign(hit, options.attributes));
-            return modelHistory.bulkCreate(hits, { transaction: options.transaction });
-          }
-          return {};
-        }
-      });
-      if (temporalOptions.blocking) {
-        return queryAll;
-      }
+      const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then( (hits, queryAll) => bulkValidate(hits, queryAll)); 
     }
     return {};
   };

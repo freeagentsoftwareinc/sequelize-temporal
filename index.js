@@ -158,27 +158,36 @@ const Temporal = function Temporal(model, sequelize, temporalOptions) {
       return _ref2.apply(this, arguments);
     };
   })();
-  const insertBulkHook = function insertBulkHook(options) {
-    if (!options.individualHooks) {
-      const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then(async hits => {
-        if (hits) {
-          // Validate that there are changes
-          const newHits = [];
-          for (let i = 0; i < hits.length; i += 1) {
-            const hit = hits[i];
-            if (await validateUpdate(hit, options, model)) newHits.push(hit);
-          }
-          if (newHits.length > 0) {
-            hits = _.pluck(newHits, 'dataValues');
-            hits = hits.map(hit => Object.assign(hit, options.attributes));
-            return modelHistory.bulkCreate(hits, { transaction: options.transaction });
-          }
-          return {};
+
+  const bulkValidate = (() => {
+    var _ref = _asyncToGenerator(function* (hits, queryAll) {
+      if (hits) {
+        // Validate that there are changes
+        const newHits = [];
+        for (let i = 0; i < hits.length; i += 1) {
+          const hit = hits[i];
+          if (yield validateUpdate(hit, options, model)) newHits.push(hit);
         }
-      });
+        if (newHits.length > 0) {
+          hits = _.pluck(newHits, 'dataValues');
+          hits = hits.map(hit => Object.assign(hit, options.attributes));
+          return modelHistory.bulkCreate(hits, { transaction: options.transaction });
+        }
+        return {};
+      }
       if (temporalOptions.blocking) {
         return queryAll;
       }
+    });
+    return function bulkValidate(_x,_x2) {
+      return _ref.apply(this, arguments);
+    };
+  })();
+  
+
+  const insertBulkHook = function insertBulkHook(options) {
+    if (!options.individualHooks) {
+      const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then((hits, queryAll) => yield bulkValidate(hits, queryAll));
     }
     return {};
   };
