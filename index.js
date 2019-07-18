@@ -1,3 +1,7 @@
+'use strict';
+
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
 /* eslint-disable no-param-reassign */
 /* eslint-disable func-names */
 /* eslint-disable  no-underscore-dangle */
@@ -10,7 +14,7 @@ const temporalDefaultOptions = {
   full: false
 };
 
-const excludeAttributes = function (obj, attrsToExclude) {
+const excludeAttributes = function excludeAttributes(obj, attrsToExclude) {
   // fancy way to exclude attributes
   return _.omit(obj, _.partial(_.rearg(_.includes, 0, 2, 1), attrsToExclude));
 };
@@ -41,7 +45,7 @@ const validateUpdate = (obj, options, previous) => {
   return true;
 };
 
-const Temporal = function (model, sequelize, temporalOptions) {
+const Temporal = function Temporal(model, sequelize, temporalOptions) {
   // eslint-disable-next-line no-param-reassign
   temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
   const Sequelize = sequelize.Sequelize;
@@ -95,19 +99,25 @@ const Temporal = function (model, sequelize, temporalOptions) {
 
   const modelHistory = sequelize.define(historyName, historyAttributes, historyOptions);
 
-  const previousValue = async (obj, options) => {
-    if (!options || !options.allowEmptyUpdates) {
-      // Get previous values
-      let fields = Object.keys(obj._changed);
-      fields = fields.length === 0 ? options.fields : fields;
-      const findParams = {};
-      findParams.raw = true;
-      findParams.where = { id: obj.dataValues.id };
-      findParams.attributes = fields;
-      let previousValues = await model.findOne(findParams);
-      options.temporalPreviousValue = cleanupObj(previousValues);
-    }
-  };
+  const previousValue = (() => {
+    var _ref = _asyncToGenerator(function* (obj, options) {
+      if (!options || !options.allowEmptyUpdates) {
+        // Get previous values
+        let fields = Object.keys(obj._changed);
+        fields = fields.length === 0 ? options.fields : fields;
+        const findParams = {};
+        findParams.raw = true;
+        findParams.where = { id: obj.dataValues.id };
+        findParams.attributes = fields;
+        let previousValues = yield model.findOne(findParams);
+        options.temporalPreviousValue = cleanupObj(previousValues);
+      }
+    });
+
+    return function previousValue(_x, _x2) {
+      return _ref.apply(this, arguments);
+    };
+  })();
   // we already get the updatedAt timestamp from our models
   const insertHook = (obj, options) => {
     const dataValues = !temporalOptions.full && obj._previousDataValues || obj.dataValues;
@@ -130,22 +140,28 @@ const Temporal = function (model, sequelize, temporalOptions) {
   };
   const previousValueBulk = options => {
     if (!options.individualHooks) {
-      const queryAll = model.findAll({ where: options.where, transaction: options.transaction, raw: true }).then(async hits => {
-        if (hits) {
-          // Validate that there are changes
-          options.temporalPreviousValue = {};
-          hits.forEach(h => {
-            options.temporalPreviousValue[h.id] = cleanupObj(h);
-          });
-        }
-      });
+      const queryAll = model.findAll({ where: options.where, transaction: options.transaction, raw: true }).then((() => {
+        var _ref2 = _asyncToGenerator(function* (hits) {
+          if (hits) {
+            // Validate that there are changes
+            options.temporalPreviousValue = {};
+            hits.forEach(function (h) {
+              options.temporalPreviousValue[h.id] = cleanupObj(h);
+            });
+          }
+        });
+
+        return function (_x3) {
+          return _ref2.apply(this, arguments);
+        };
+      })());
       if (temporalOptions.blocking) {
         return queryAll;
       }
     }
   };
 
-  const insertBulkHook = function (options) {
+  const insertBulkHook = function insertBulkHook(options) {
     if (!options.individualHooks) {
       const queryAll = model.findAll({ where: options.where, transaction: options.transaction }).then(hits => {
         if (hits) {
@@ -170,7 +186,7 @@ const Temporal = function (model, sequelize, temporalOptions) {
     return {};
   };
 
-  const insertBulkCreateHook = function (instances, options) {
+  const insertBulkCreateHook = function insertBulkCreateHook(instances, options) {
     if (!options.individualHooks) {
       const hits = instances.map(instance => Object.assign(instance.dataValues, { isCreate: true }));
       if (hits) {
@@ -194,7 +210,7 @@ const Temporal = function (model, sequelize, temporalOptions) {
   model.hook('afterBulkUpdate', insertBulkHook);
   model.hook('afterBulkDestroy', insertBulkHook);
 
-  const readOnlyHook = function () {
+  const readOnlyHook = function readOnlyHook() {
     throw new Error("This is a read-only history database. You aren't allowed to modify it.");
   };
 
