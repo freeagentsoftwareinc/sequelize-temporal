@@ -120,7 +120,7 @@ const Temporal = function Temporal(model, sequelize, temporalOptions) {
   })();
   // we already get the updatedAt timestamp from our models
   const insertHook = (obj, options) => {
-    const dataValues = !temporalOptions.full && obj._previousDataValues || obj.dataValues;
+    const dataValues = obj.dataValues;
     const insertRecord = () => {
       const historyRecord = modelHistory.create(dataValues, { transaction: options.transaction });
       if (temporalOptions.blocking) {
