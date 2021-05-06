@@ -217,7 +217,7 @@ const Temporal = function Temporal(model, sequelize, temporalOptions) {
   modelHistory.hook('beforeUpdate', readOnlyHook);
   modelHistory.hook('beforeDestroy', readOnlyHook);
 
-  return model;
+  return modelHistory;
 };
 
 module.exports = Temporal;
