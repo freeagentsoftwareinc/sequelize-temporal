@@ -49,7 +49,7 @@ const Temporal = function Temporal(model, sequelize, temporalOptions) {
   // eslint-disable-next-line no-param-reassign
   temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
   const Sequelize = sequelize.Sequelize;
-  const historyName = `${model.name}History`;
+  const historyName = temporalOptions.useTableName? `${model.getTableName()}History` :`${model.name}History`;
   // var historyName = model.getTableName() + 'History';
   // var historyName = model.options.name.singular + 'History';
 
